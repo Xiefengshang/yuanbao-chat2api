@@ -118,6 +118,16 @@ impl Service {
                     object: "model".to_string(),
                     owned_by: "deepseek".to_string(),
                 },
+                Model {
+                    id: "deepseek-v3-search".to_string(),
+                    object: "model".to_string(),
+                    owned_by: "deepseek".to_string(),
+                },
+                Model {
+                    id: "deepseek-r1-search".to_string(),
+                    object: "model".to_string(),
+                    owned_by: "deepseek".to_string(),
+                },
             ],
         })
     }
