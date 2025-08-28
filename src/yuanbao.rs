@@ -178,7 +178,7 @@ impl Yuanbao {
         
         // 如果是搜索模型，添加 supportFunctions 字段
         if request.chat_model.is_search_model() {
-            body["supportFunctions"] = json!(["openInternetSearch"]);
+            body["supportFunctions"] = json!({"internetSearch": "openInternetSearch"});
         }
         
         let formatted_url = CHAT_URL.replace("{}", &conversation_id);
