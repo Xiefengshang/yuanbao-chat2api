@@ -72,6 +72,8 @@ impl Display for ChatMessages {
 pub enum ChatModel {
     DeepSeekV3,
     DeepSeekR1,
+    DeepSeekV3Search, // 新增搜索模型
+    DeepSeekR1Search, // 新增搜索模型
 }
 impl FromStr for ChatModel {
     type Err = Error;
@@ -80,6 +82,8 @@ impl FromStr for ChatModel {
         match s {
             "deepseek-r1" => Ok(ChatModel::DeepSeekR1),
             "deepseek-v3" => Ok(ChatModel::DeepSeekV3),
+            "deepseek-r1-search" => Ok(ChatModel::DeepSeekR1Search), // 新增解析
+            "deepseek-v3-search" => Ok(ChatModel::DeepSeekV3Search), // 新增解析
             &_ => {
                 bail!("invalid model")
             }
@@ -91,6 +95,8 @@ impl ChatModel {
         match self {
             ChatModel::DeepSeekV3 => "deep_seek_v3",
             ChatModel::DeepSeekR1 => "deep_seek",
+            ChatModel::DeepSeekV3Search => "deep_seek_v3", // 搜索模型使用相同基础名称
+            ChatModel::DeepSeekR1Search => "deep_seek",    // 搜索模型使用相同基础名称
         }
         .to_string()
     }
@@ -98,8 +104,15 @@ impl ChatModel {
         match self {
             ChatModel::DeepSeekV3 => "deepseek-v3",
             ChatModel::DeepSeekR1 => "deepseek-r1",
+            ChatModel::DeepSeekV3Search => "deepseek-v3-search", // 新增
+            ChatModel::DeepSeekR1Search => "deepseek-r1-search", // 新增
         }
         .to_string()
+    }
+    
+    // 新增方法判断是否为搜索模型
+    pub fn is_search_model(&self) -> bool {
+        matches!(self, ChatModel::DeepSeekV3Search | ChatModel::DeepSeekR1Search)
     }
 }
 
@@ -145,7 +158,9 @@ impl Yuanbao {
             .context("cannot create conversation")?;
         info!("Conversation id: {}", conversation_id);
         let prompt = request.messages.to_string();
-        let body = json!(
+        
+        // 构建基础请求体
+        let mut body = json!(
             {
         "model": "gpt_175B_0404",
         "prompt": prompt,
@@ -160,8 +175,13 @@ impl Yuanbao {
         "chatModelId": request.chat_model.to_yuanbao_string(),
             }
         );
+        
+        // 如果是搜索模型，添加 supportFunctions 字段
+        if request.chat_model.is_search_model() {
+            body["supportFunctions"] = json!(["openInternetSearch"]);
+        }
+        
         let formatted_url = CHAT_URL.replace("{}", &conversation_id);
-        // TODO supported functions
         let mut sse = EventSource::new(self.client.post(&formatted_url).json(&body))
             .context("failed to get next event")?;
         let (sender, receiver) = unbounded::<ChatCompletionEvent>();
